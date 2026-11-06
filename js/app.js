@@ -53,14 +53,14 @@
     if (!next.length) { toast('Keep at least one paint ticked'); renderOwned(); return; }
     owned = next; store('ownedPaints', owned);
     $('#paintCount').textContent = owned.length;
-    refreshResult();
+    renderLab(); refreshResult();
   });
   $$('[data-preset]').forEach(function (b) {
     b.addEventListener('click', function () {
       owned = b.dataset.preset === 'basic'
         ? TUBES.filter(function (t) { return t.basic; }).map(function (t) { return t.id; })
         : PAINTS.map(function (p) { return p.id; });
-      store('ownedPaints', owned); renderOwned(); refreshResult();
+      store('ownedPaints', owned); renderOwned(); renderLab(); refreshResult();
       toast(b.dataset.preset === 'basic' ? 'Using the basic 5 paints' : 'Using all paints');
     });
   });
@@ -281,7 +281,12 @@
   // ---------- Mixing lab ----------
   var labCounts = {};
   function renderLab() {
-    $('#labTubes').innerHTML = PAINTS.map(function (p) {
+    // Only show the paints ticked in "My paints"; forget amounts of paints no longer owned
+    Object.keys(labCounts).forEach(function (id) { if (owned.indexOf(id) === -1) delete labCounts[id]; });
+    var mine = PAINTS.filter(function (p) { return owned.indexOf(p.id) !== -1; });
+    $('#labOwned').innerHTML = 'Showing the ' + mine.length + ' ' + (mine.length === 1 ? 'paint' : 'paints') + ' you own.' +
+      ' <button class="link-btn" data-goto="paints">Change my paints</button>';
+    $('#labTubes').innerHTML = mine.map(function (p) {
       var n = labCounts[p.id] || 0;
       return '<div class="tube' + (n ? ' has-parts' : '') + '"><span class="blob" style="background:' + p.displayHex + '"></span>' +
         '<div><div class="tube-name">' + esc(p.name) + '</div><div class="stepper">' +
@@ -316,6 +321,9 @@
     renderLab();
   });
   $('#labReset').addEventListener('click', function () { labCounts = {}; renderLab(); });
+  $('#labOwned').addEventListener('click', function (e) {
+    if (e.target.closest('[data-goto]')) showTab('paints');
+  });
 
   // ---------- Start ----------
   renderOwned(); renderChips(); renderLibrary(); renderLab();
