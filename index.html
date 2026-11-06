@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shade Mixer: Paint Color Recipes</title>
+  <meta name="description" content="Pick any paint shade (pastels, brights, earth tones, neutrals) and see exactly which paints to mix, and how much of each.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='22' cy='26' r='16' fill='%23E8483A'/><circle cx='42' cy='26' r='16' fill='%23F5C518' fill-opacity='.85'/><circle cx='32' cy='42' r='16' fill='%232B3A9C' fill-opacity='.8'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="22" cy="26" r="16" fill="#E8483A"/>
+          <circle cx="42" cy="26" r="16" fill="#F5C518" fill-opacity=".85"/>
+          <circle cx="32" cy="42" r="16" fill="#2B3A9C" fill-opacity=".8"/>
+        </svg>
+        <div>
+          <h1>Shade Mixer</h1>
+          <p class="tagline">Pick a color. Get the paint recipe.</p>
+        </div>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button class="tab is-active" role="tab" aria-selected="true" data-tab="find">Find a shade</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="lab">Mixing lab</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="paints">My paints <span class="count" id="paintCount"></span></button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- FIND A SHADE -->
+    <section id="tab-find" class="panel is-active" role="tabpanel">
+      <div class="find-layout">
+        <div class="library">
+          <div class="pick-own card">
+            <label class="pick-label" for="customColor">Have a color in mind?</label>
+            <div class="pick-row">
+              <input type="color" id="customColor" value="#9CAF88" aria-label="Choose any color">
+              <input type="text" id="customHex" value="#9CAF88" maxlength="7" spellcheck="false" aria-label="Hex color code">
+              <button class="btn btn-primary" id="customGo">Get recipe</button>
+            </div>
+            <p class="hint">Tap the color square to choose any shade, or type a color code like <code>#FFB6C1</code>.</p>
+          </div>
+
+          <div class="search-row">
+            <input type="search" id="search" placeholder="Search shades: mint, navy, peach..." aria-label="Search shades">
+          </div>
+          <div class="chips" id="chips" role="group" aria-label="Filter by color family"></div>
+          <div id="library"></div>
+        </div>
+
+        <aside class="result" id="result" aria-live="polite">
+          <div class="result-empty" id="resultEmpty">
+            <div class="empty-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+            <h2>Choose a shade</h2>
+            <p>Tap any color on the left and we'll show which paints to mix, and how much of each.</p>
+          </div>
+          <div class="result-body" id="resultBody" hidden></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- MIXING LAB -->
+    <section id="tab-lab" class="panel" role="tabpanel" hidden>
+      <div class="lab-layout">
+        <div>
+          <h2 class="section-title">Mixing lab</h2>
+          <p class="section-lead">Add parts of each paint and watch the color change, just like on a real palette.</p>
+          <div class="tube-grid" id="labTubes"></div>
+        </div>
+        <aside class="lab-result card">
+          <div class="lab-swatch" id="labSwatch"><span>Add some paint</span></div>
+          <div class="lab-info">
+            <div class="lab-hex" id="labHex">—</div>
+            <div class="lab-near" id="labNear">Use the + buttons to add paint.</div>
+            <div class="lab-bar" id="labBar"></div>
+            <button class="btn btn-ghost" id="labReset">Clear palette</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- MY PAINTS -->
+    <section id="tab-paints" class="panel" role="tabpanel" hidden>
+      <h2 class="section-title">My paints</h2>
+      <p class="section-lead">Tick the paints you have. Recipes will only use these.</p>
+      <div class="preset-row">
+        <button class="btn btn-ghost" data-preset="basic">Basic kit (5 paints)</button>
+        <button class="btn btn-ghost" data-preset="all">All paints</button>
+      </div>
+      <div class="owned-grid" id="ownedGrid"></div>
+      <p class="hint">Tip: the basic kit (white, black, red, yellow, blue) can make most colors. Adding a magenta or purple helps a lot for pinks, lavenders and purples; a phthalo blue or green helps for turquoise and teal.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Recipes come from a paint-mixing simulation (pigments absorb light, so blue + yellow really does make green here). Real paints differ a little by brand, so always test a small amount first. “1 part” can be any equal measure: a drop, a spoon, a bottle cap.</p>
+    </div>
+  </footer>
+
+  <script src="js/mix.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
