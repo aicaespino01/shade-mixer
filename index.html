@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/projects.css">
 </head>
 <body>
   <header class="site-header">
@@ -28,6 +29,7 @@
       <nav class="tabs" role="tablist" aria-label="Sections">
         <button class="tab is-active" role="tab" aria-selected="true" data-tab="find">Find a shade</button>
         <button class="tab" role="tab" aria-selected="false" data-tab="lab">Mixing lab</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="projects">Projects</button>
         <button class="tab" role="tab" aria-selected="false" data-tab="paints">My paints <span class="count" id="paintCount"></span></button>
       </nav>
     </div>
@@ -84,6 +86,164 @@
             <button class="btn btn-ghost" id="labReset">Clear palette</button>
           </div>
         </aside>
+      </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section id="tab-projects" class="panel" role="tabpanel" hidden>
+      <div id="projList">
+        <h2 class="section-title">Paint projects</h2>
+        <p class="section-lead">Paint-by-number pictures you can paint at home with no kit and no printer. Each project shows how to mix every color from the paints you have.</p>
+
+        <div class="maker-cta card">
+          <div class="maker-cta-art" aria-hidden="true">
+            <svg viewBox="0 0 60 60"><rect x="2" y="2" width="56" height="56" rx="8" fill="#F2EBE1"/><path d="M2 40 L18 26 L30 36 L42 22 L58 36 V50 a8 8 0 0 1 -8 8 H10 a8 8 0 0 1 -8 -8Z" fill="#7DBA5B"/><circle cx="44" cy="15" r="7" fill="#F5C518"/><path d="M2 40 L18 26 L30 36 L42 22 L58 36" fill="none" stroke="#2A2420" stroke-width="1.5"/><text x="14" y="50" font-size="8" font-weight="700" fill="#2A2420">3</text><text x="40" y="18" font-size="7" font-weight="700" fill="#2A2420">5</text></svg>
+          </div>
+          <div class="maker-cta-text">
+            <h3>Make one from any picture</h3>
+            <p>Use a photo of a place or a pet, or a screenshot of your favorite character. You get a detailed paint-by-number like a store-bought kit, using colors you can mix.</p>
+          </div>
+          <button class="btn btn-primary" id="openMaker">Make my own</button>
+        </div>
+
+        <details class="guide card" id="guide">
+          <summary><span>How it works (no printer needed)</span><span class="guide-hint">Read this first</span></summary>
+          <div class="guide-body">
+            <div class="guide-sec">
+              <h4>1. What you need</h4>
+              <ul>
+                <li>A canvas, canvas board or thick paper (cardstock or watercolor paper). A hard, flat surface also works, like a wooden board painted white first.</li>
+                <li>A pencil, an eraser and a ruler</li>
+                <li>2 or 3 brushes: a small pointy one for details and a wider flat one for big areas</li>
+                <li>A cup of water, paper towels, and an old plate to mix on</li>
+                <li>Your paints (tick them in <b>My paints</b>, or scan them from a photo)</li>
+              </ul>
+            </div>
+            <div class="guide-sec">
+              <h4>2. Pick a project</h4>
+              <p>Start with an <b>Easy</b> one. Each card shows if you can mix all its colors with your paints.</p>
+            </div>
+            <div class="guide-sec">
+              <h4>3. Draw the lines on your canvas</h4>
+              <p>Pick the method that suits you:</p>
+              <div class="method">
+                <b>A. Grid method (any size, easiest to get right)</b>
+                <ol>
+                  <li>Open a project, switch to <b>Numbers</b> and turn on <b>Show grid</b>.</li>
+                  <li>Choose your canvas size. The page tells you how far apart to draw the lines, for example every 5 cm.</li>
+                  <li>With a ruler, draw the same grid lightly in pencil on your canvas.</li>
+                  <li>Copy one square at a time. Look at where each line enters and leaves the square, mark those points, then join them. Big shapes first, small details last.</li>
+                  <li>Erase the grid lines when you're done (or just paint over them).</li>
+                </ol>
+              </div>
+              <div class="method">
+                <b>B. Trace from your screen (small canvas or paper)</b>
+                <ol>
+                  <li>Tap <b>Tracing mode</b> and turn your screen brightness all the way up.</li>
+                  <li>Lay thin paper (baking paper or normal printer paper) on the screen and trace the lines gently with a pencil. Don't press hard on the screen.</li>
+                  <li>Turn the paper over and scribble pencil all over the back of the lines.</li>
+                  <li>Put it on your canvas, scribbled side down, and trace the lines again. The pencil transfers onto the canvas.</li>
+                  <li>For a big canvas, zoom in and trace it in parts. Use the grid to line the parts up.</li>
+                </ol>
+              </div>
+              <div class="method">
+                <b>C. Window method (thick paper)</b>
+                <p>Tape your traced paper to a sunny window, tape your thick paper over it, and trace the lines you can see through it.</p>
+              </div>
+            </div>
+            <div class="guide-sec">
+              <h4>4. Write the numbers</h4>
+              <p>Look at the <b>Numbers</b> view and write each number small and light in pencil inside its area. Tap a color in the list to see every place it goes.</p>
+            </div>
+            <div class="guide-sec">
+              <h4>5. Mix your colors</h4>
+              <p>Each color shows a recipe made from your paints. Mix a bit more than you think you need, because mixing the exact same shade twice is hard. Cover the plate with plastic wrap so the paint doesn't dry out.</p>
+            </div>
+            <div class="guide-sec">
+              <h4>6. Paint</h4>
+              <ul>
+                <li>Paint big areas and the background first, small details last.</li>
+                <li>Paint light colors before dark ones.</li>
+                <li>Let each area dry 10 to 15 minutes before painting right next to it.</li>
+                <li>Wash and dab your brush dry between colors.</li>
+                <li>Paint looks patchy? Let it dry and add a second coat. Made a mistake? Let it dry and paint over it.</li>
+              </ul>
+            </div>
+            <div class="guide-sec">
+              <h4>7. Finish</h4>
+              <p>For cartoon characters, go over the outlines in black with your smallest brush. Let it dry overnight, then sign your name!</p>
+            </div>
+          </div>
+        </details>
+
+        <div id="savedSection" hidden>
+          <h3 class="group-title">My pictures <small>saved on this device</small></h3>
+          <div class="proj-grid" id="savedGrid"></div>
+        </div>
+
+        <h3 class="group-title">Starter projects <small>simple drawings, good for practice</small></h3>
+        <div class="proj-tools">
+          <div class="chips" id="projChips" role="group" aria-label="Filter projects"></div>
+          <label class="sort">Sort by
+            <select id="projSort">
+              <option value="easy">Easiest first</option>
+              <option value="fewest">Fewest paints</option>
+              <option value="hard">Hardest first</option>
+            </select>
+          </label>
+        </div>
+        <div class="proj-grid" id="projGrid"></div>
+        <p class="hint fan-note">Adventure Time and its characters belong to Cartoon Network. This site is not connected to them. The Adventure Time projects are non-commercial fan art for personal use, which we consider fair use. Please don’t sell paintings made from them.</p>
+      </div>
+      <div id="projDetail" hidden></div>
+
+      <div id="projMaker" hidden>
+        <button class="link-btn back-link" data-maker-back>← All projects</button>
+        <h2 class="section-title">Make a paint-by-number</h2>
+        <p class="section-lead">Clear, bright pictures work best. Everything happens on your device, so nothing is uploaded.</p>
+        <div class="maker-layout">
+          <div class="maker-settings card">
+            <div class="mk-step"><span class="step-num">1</span><b>Choose a picture</b></div>
+            <div class="scan-buttons">
+              <label class="btn btn-primary file-btn">Take a photo<input type="file" accept="image/*" capture="environment" id="mkCam" class="sr-only"></label>
+              <label class="btn btn-ghost file-btn">Upload a picture<input type="file" accept="image/*" id="mkFile" class="sr-only"></label>
+            </div>
+            <div class="mk-thumb" id="mkThumb" hidden></div>
+
+            <div class="mk-step"><span class="step-num">2</span><b>Your canvas</b></div>
+            <select id="mkSize" class="mk-select" aria-label="Canvas size"></select>
+            <div class="seg seg-sm" id="mkOrient" role="group" aria-label="Orientation">
+              <button class="seg-btn" data-orient="portrait">Portrait</button>
+              <button class="seg-btn" data-orient="landscape">Landscape</button>
+            </div>
+
+            <div class="mk-step"><span class="step-num">3</span><b>How detailed?</b></div>
+            <div class="seg seg-sm" id="mkDetail" role="group" aria-label="Detail">
+              <button class="seg-btn" data-detail="simple">Simple</button>
+              <button class="seg-btn" data-detail="medium">Medium</button>
+              <button class="seg-btn" data-detail="detailed">Detailed</button>
+            </div>
+            <p class="hint" id="mkDetailHint"></p>
+
+            <div class="mk-step"><span class="step-num">4</span><b>How many colors?</b></div>
+            <div class="seg seg-sm" id="mkColors" role="group" aria-label="Number of colors">
+              <button class="seg-btn" data-colors="8">8</button>
+              <button class="seg-btn" data-colors="12">12</button>
+              <button class="seg-btn" data-colors="16">16</button>
+              <button class="seg-btn" data-colors="24">24</button>
+            </div>
+            <label class="only-mine mk-mine"><input type="checkbox" id="mkMine" checked> Only use colors I can mix from my paints</label>
+
+            <button class="btn btn-primary mk-go" id="mkGo" disabled>Make my paint-by-number</button>
+          </div>
+          <div class="maker-result" id="mkResult">
+            <div class="mk-empty card">
+              <div class="empty-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+              <h3>Your paint-by-number will appear here</h3>
+              <p>Choose a picture, pick your canvas size and how detailed you want it, then tap <b>Make my paint-by-number</b>.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -180,8 +340,25 @@
     </div>
   </footer>
 
+  <div class="trace" id="trace" hidden role="dialog" aria-label="Tracing mode">
+    <div class="trace-bar">
+      <button class="btn btn-ghost btn-sm" id="traceClose">Close</button>
+      <div class="trace-ctrl">
+        <button class="btn btn-ghost btn-sm zoom-btn" data-zoom="-1" aria-label="Zoom out">−</button>
+        <span id="traceZoom">100%</span>
+        <button class="btn btn-ghost btn-sm zoom-btn" data-zoom="1" aria-label="Zoom in">+</button>
+        <label><input type="checkbox" id="traceGrid" checked> Grid</label>
+        <label><input type="checkbox" id="traceNums"> Numbers</label>
+      </div>
+    </div>
+    <p class="trace-tip">Turn your brightness up, lay thin paper on the screen and trace gently.</p>
+    <div class="trace-area" id="traceArea"></div>
+  </div>
+
   <script src="js/mix.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/projects.js"></script>
+  <script src="js/pbn.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

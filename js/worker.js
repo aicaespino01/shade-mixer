@@ -14,7 +14,7 @@ self.onmessage = function (e) {
   var msg = e.data;
   var all = PAINTS.concat((msg.custom || []).map(customPaint));
   var use = all.filter(function (p) { return msg.enabled.indexOf(p.id) !== -1; });
-  var recipes = self.PaintMix.solve(msg.hex, use).map(function (r) {
+  var recipes = self.PaintMix.solve(msg.hex, use, { maxPaints: msg.maxPaints || 4 }).map(function (r) {
     return {
       tag: r.tag, hex: r.hex, dE: r.dE, total: r.total,
       items: r.items.map(function (i) { return { id: i.paint.id, parts: i.parts }; })
