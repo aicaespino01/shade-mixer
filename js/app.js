@@ -4,9 +4,19 @@
   var PM = window.PaintMix;
   var TUBES = window.PAINT_DATA.TUBES;
   var COLORS = window.PAINT_DATA.COLORS;
-  var PAINTS = TUBES.map(PM.makePaint);
-  var BY_ID = {};
-  PAINTS.forEach(function (p) { BY_ID[p.id] = p; });
+  var STANDARD = TUBES.map(PM.makePaint);
+  // Paints the user scanned from photos: [{id, name, hex}]
+  var custom = [];
+  var PAINTS = [], BY_ID = {};
+  function rebuildPaints() {
+    PAINTS = STANDARD.concat(custom.map(function (c) {
+      var p = PM.makePaint({ id: c.id, name: c.name, hex: c.hex, strength: 1 });
+      p.custom = true;
+      return p;
+    }));
+    BY_ID = {};
+    PAINTS.forEach(function (p) { BY_ID[p.id] = p; });
+  }
   var GROUPS = [];
   COLORS.forEach(function (c) {
     if (GROUPS.indexOf(c.group) === -1) GROUPS.push(c.group);
@@ -35,33 +45,111 @@
   }
 
   // ---------- Owned paints ----------
+  var saved = store('customPaints');
+  if (Array.isArray(saved)) {
+    custom = saved.filter(function (c) { return c && typeof c.id === 'string' && /^#[0-9A-F]{6}$/i.test(c.hex); })
+      .map(function (c) { return { id: c.id, name: String(c.name || 'My paint').slice(0, 40), hex: c.hex.toUpperCase() }; });
+  }
+  rebuildPaints();
   var owned = store('ownedPaints');
-  if (!Array.isArray(owned) || !owned.length) owned = PAINTS.map(function (p) { return p.id; });
+  if (!Array.isArray(owned)) owned = [];
   owned = owned.filter(function (id) { return BY_ID[id]; });
+  if (!owned.length) owned = STANDARD.map(function (p) { return p.id; });
+  function idsOf(list) { return list.map(function (p) { return p.id; }); }
+  function isOwned(id) { return owned.indexOf(id) !== -1; }
+
+  // Which standard paint and which named shade a color is closest to
+  function identify(hex) {
+    var lab = PM.hexToLab(hex), best = null, bd = Infinity;
+    STANDARD.forEach(function (p) { var d = PM.dE2000(lab, p.lab); if (d < bd) { bd = d; best = p; } });
+    var shade = nearestName(hex).color;
+    if (bd >= 8) {
+      // Maybe a ready-mixed tint: white plus a bit of one paint (common in craft kits)
+      var white = BY_ID.white, tint = null, td = Infinity, tr = 0;
+      STANDARD.forEach(function (p) {
+        if (p === white) return;
+        [1, 2, 3, 5, 8, 12, 20].forEach(function (k) {
+          var d = PM.dE2000(lab, PM.mix([white, p], [k, 1]).lab);
+          if (d < td) { td = d; tint = p; tr = k; }
+        });
+      });
+      if (td < 10 && td < bd - 2) {
+        var amount = tr >= 5 ? 'a little' : 'some';
+        return {
+          paint: tint, shade: shade,
+          text: 'Looks like white + ' + amount + ' <b>' + esc(tint.name) + '</b> (already mixed) · Color: ' + esc(shade.name),
+          short: 'White + ' + amount + ' ' + esc(tint.name)
+        };
+      }
+    }
+    var how = bd < 8 ? 'Looks like' : (bd < 16 ? 'Similar to' : 'Closest standard paint:');
+    return {
+      paint: best, shade: shade,
+      text: how + ' <b>' + esc(best.name) + '</b> · Color: ' + esc(shade.name),
+      short: how + ' ' + esc(best.name)
+    };
+  }
 
   function renderOwned() {
-    var grid = $('#ownedGrid');
-    grid.innerHTML = PAINTS.map(function (p) {
-      return '<label class="owned"><input type="checkbox" value="' + p.id + '"' + (owned.indexOf(p.id) !== -1 ? ' checked' : '') + '>' +
+    $('#ownedGrid').innerHTML = STANDARD.map(function (p) {
+      return '<label class="owned"><input type="checkbox" value="' + p.id + '"' + (isOwned(p.id) ? ' checked' : '') + '>' +
         '<span class="blob" style="background:' + p.displayHex + '"></span>' +
         '<span><span class="owned-name">' + esc(p.name) + '</span></span></label>';
     }).join('');
+    var mine = PAINTS.filter(function (p) { return p.custom; });
+    $('#customSection').hidden = !mine.length;
+    $('#customCount').textContent = mine.length ? mine.length + (mine.length === 1 ? ' paint' : ' paints') : '';
+    $('#customGrid').innerHTML = mine.map(function (p) {
+      return '<div class="owned owned-custom"><input type="checkbox" value="' + p.id + '" aria-label="Use ' + esc(p.name) + '"' + (isOwned(p.id) ? ' checked' : '') + '>' +
+        '<span class="blob" style="background:' + p.displayHex + '"></span>' +
+        '<span class="owned-text"><input class="rename" data-rename="' + p.id + '" value="' + esc(p.name) + '" maxlength="40" aria-label="Paint name">' +
+        '<span class="owned-sub">' + identify(p.hex).short + '</span></span>' +
+        '<button class="icon-btn" data-del="' + p.id + '" aria-label="Delete ' + esc(p.name) + '" title="Delete">×</button></div>';
+    }).join('');
+    $('[data-preset="mine"]').hidden = !mine.length;
     $('#paintCount').textContent = owned.length;
   }
-  $('#ownedGrid').addEventListener('change', function () {
-    var next = $$('#ownedGrid input:checked').map(function (i) { return i.value; });
-    if (!next.length) { toast('Keep at least one paint ticked'); renderOwned(); return; }
-    owned = next; store('ownedPaints', owned);
+  function ownedChanged() {
+    store('ownedPaints', owned);
     $('#paintCount').textContent = owned.length;
     renderLab(); refreshResult();
+  }
+  function onTick(e) {
+    if (e.target.type !== 'checkbox') return;
+    var next = $$('#ownedGrid input[type=checkbox]:checked, #customGrid input[type=checkbox]:checked').map(function (i) { return i.value; });
+    if (!next.length) { toast('Keep at least one paint ticked'); renderOwned(); return; }
+    owned = next; ownedChanged();
+  }
+  $('#ownedGrid').addEventListener('change', onTick);
+  $('#customGrid').addEventListener('change', onTick);
+  $('#customGrid').addEventListener('change', function (e) {
+    var r = e.target.closest('[data-rename]'); if (!r) return;
+    var c = custom.filter(function (x) { return x.id === r.dataset.rename; })[0]; if (!c) return;
+    var v = r.value.trim().slice(0, 40) || c.name;
+    c.name = v; r.value = v; BY_ID[c.id].name = v;
+    store('customPaints', custom);
+    renderLab();
+    if (current && currentRecipes.length) renderResult();
+  });
+  $('#customGrid').addEventListener('click', function (e) {
+    var d = e.target.closest('[data-del]'); if (!d) return;
+    var c = custom.filter(function (x) { return x.id === d.dataset.del; })[0]; if (!c) return;
+    if (!window.confirm('Delete "' + c.name + '" from your paints?')) return;
+    custom = custom.filter(function (x) { return x.id !== c.id; });
+    owned = owned.filter(function (id) { return id !== c.id; });
+    if (!owned.length) owned = idsOf(STANDARD);
+    store('customPaints', custom);
+    rebuildPaints(); renderOwned(); ownedChanged();
+    toast('Paint deleted');
   });
   $$('[data-preset]').forEach(function (b) {
     b.addEventListener('click', function () {
-      owned = b.dataset.preset === 'basic'
-        ? TUBES.filter(function (t) { return t.basic; }).map(function (t) { return t.id; })
-        : PAINTS.map(function (p) { return p.id; });
-      store('ownedPaints', owned); renderOwned(); renderLab(); refreshResult();
-      toast(b.dataset.preset === 'basic' ? 'Using the basic 5 paints' : 'Using all paints');
+      var p = b.dataset.preset;
+      if (p === 'basic') owned = TUBES.filter(function (t) { return t.basic; }).map(function (t) { return t.id; });
+      else if (p === 'mine') owned = custom.map(function (c) { return c.id; });
+      else owned = idsOf(PAINTS);
+      renderOwned(); ownedChanged();
+      toast(p === 'basic' ? 'Using the basic 5 paints' : (p === 'mine' ? 'Using only your scanned paints' : 'Using all paints'));
     });
   });
 
@@ -166,7 +254,7 @@
     var id = ++reqId;
     var wrapped = function (r) { if (id === reqId) cb(r); };
     wrapped.hex = hex;
-    if (worker) { pending[id] = wrapped; worker.postMessage({ reqId: id, hex: hex, enabled: owned.slice() }); }
+    if (worker) { pending[id] = wrapped; worker.postMessage({ reqId: id, hex: hex, enabled: owned.slice(), custom: custom.slice() }); }
     else solveLocal(hex, wrapped);
   }
 
@@ -323,6 +411,206 @@
   $('#labReset').addEventListener('click', function () { labCounts = {}; renderLab(); });
   $('#labOwned').addEventListener('click', function (e) {
     if (e.target.closest('[data-goto]')) showTab('paints');
+  });
+
+  // ---------- Photo scanner ----------
+  var photos = [], activePhoto = -1, samples = [], whiteMode = false, sampleSeq = 0;
+  var MAX_SIDE = 1600;
+  function lin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function unlin(v) { v = Math.max(0, Math.min(1, v)); return 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055); }
+
+  function openScanner() {
+    $('#scanner').hidden = false; $('#scanCta').hidden = true;
+    $('#scanner').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function closeScanner() { setWhiteMode(false); $('#scanner').hidden = true; $('#scanCta').hidden = false; }
+  $('#openScanner').addEventListener('click', openScanner);
+  $('#closeScanner').addEventListener('click', closeScanner);
+
+  function onFiles(e) {
+    var files = Array.prototype.slice.call(e.target.files || []);
+    e.target.value = '';
+    files.forEach(loadPhoto);
+  }
+  $('#camInput').addEventListener('change', onFiles);
+  $('#fileInput').addEventListener('change', onFiles);
+
+  function loadPhoto(file) {
+    if (file.type && file.type.indexOf('image/') !== 0) { toast('That file is not a photo'); return; }
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      var s = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+      var c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * s));
+      c.height = Math.max(1, Math.round(img.naturalHeight * s));
+      var ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      var data;
+      try { data = ctx.getImageData(0, 0, c.width, c.height); } catch (err) { toast('Could not read that photo'); return; }
+      photos.push({ canvas: c, data: data, white: null, thumb: url });
+      activePhoto = photos.length - 1;
+      $('#howto').open = false;
+      renderScan();
+      $('#photoWrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); toast('Could not open that photo. Try a JPG or PNG.'); };
+    img.src = url;
+  }
+
+  function sampleRadius(ph) { return Math.max(3, Math.round(Math.min(ph.canvas.width, ph.canvas.height) * 0.012)); }
+
+  // Average color around a tap, ignoring the shiniest and darkest pixels (glare, shadows)
+  function sampleAt(ph, x, y) {
+    var w = ph.canvas.width, h = ph.canvas.height, d = ph.data.data, r = sampleRadius(ph), px = [];
+    for (var dy = -r; dy <= r; dy++) {
+      for (var dx = -r; dx <= r; dx++) {
+        if (dx * dx + dy * dy > r * r) continue;
+        var xx = Math.round(x) + dx, yy = Math.round(y) + dy;
+        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        var i = (yy * w + xx) * 4;
+        px.push([d[i], d[i + 1], d[i + 2], 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]]);
+      }
+    }
+    px.sort(function (a, b) { return a[3] - b[3]; });
+    var lo = Math.floor(px.length * 0.1), hi = Math.max(lo + 1, Math.ceil(px.length * 0.85));
+    var acc = [0, 0, 0], n = 0;
+    for (var k = lo; k < hi && k < px.length; k++) { acc[0] += lin(px[k][0]); acc[1] += lin(px[k][1]); acc[2] += lin(px[k][2]); n++; }
+    return [unlin(acc[0] / n), unlin(acc[1] / n), unlin(acc[2] / n)];
+  }
+
+  // Color of a sample, corrected with the photo's white paper if one was tapped
+  function sampleHex(s) {
+    var ph = photos[s.photo], rgb = s.raw;
+    if (ph && ph.white) {
+      var W = ph.white.raw;
+      rgb = rgb.map(function (v, i) { return unlin(lin(v) * 0.86 / Math.max(lin(W[i]), 0.02)); });
+    }
+    return PM.rgbToHex(rgb);
+  }
+
+  function setWhiteMode(on) {
+    whiteMode = on;
+    $('#whiteBtn').classList.toggle('is-on', on);
+    $('#whiteBtn').textContent = on ? 'Cancel' : 'Tap white paper';
+    $('#modeBanner').hidden = !on;
+  }
+  $('#whiteBtn').addEventListener('click', function () { setWhiteMode(!whiteMode); });
+  $('#whiteStatus').addEventListener('click', function (e) {
+    if (!e.target.closest('[data-undo-white]')) return;
+    if (photos[activePhoto]) photos[activePhoto].white = null;
+    renderScan();
+  });
+
+  $('#photoCanvas').addEventListener('click', function (e) {
+    var ph = photos[activePhoto]; if (!ph) return;
+    var rect = this.getBoundingClientRect();
+    var x = (e.clientX - rect.left) * this.width / rect.width;
+    var y = (e.clientY - rect.top) * this.height / rect.height;
+    var raw = sampleAt(ph, x, y);
+    if (whiteMode) {
+      var lab = PM.hexToLab(PM.rgbToHex(raw));
+      if (lab[0] < 45 || Math.hypot(lab[1], lab[2]) > 30) {
+        toast('That spot looks too dark or colorful. Tap plain white paper.');
+        return;
+      }
+      ph.white = { x: x, y: y, raw: raw };
+      setWhiteMode(false);
+      toast('Colors corrected using the white paper');
+    } else {
+      samples.push({ id: ++sampleSeq, photo: activePhoto, x: x, y: y, raw: raw, name: null });
+    }
+    renderScan();
+  });
+
+  function drawMarker(ctx, x, y, r, fill, label) {
+    ctx.lineWidth = Math.max(2, r * 0.18);
+    ctx.strokeStyle = 'rgba(0,0,0,.55)';
+    ctx.beginPath(); ctx.arc(x, y, r + ctx.lineWidth * 0.6, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    var br = r * 0.75, bx = x + r * 0.95, by = y - r * 0.95;
+    ctx.fillStyle = '#2A2420';
+    ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '700 ' + Math.round(br * 1.1) + 'px "DM Sans", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, bx, by + br * 0.05);
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = Math.max(1.5, r * 0.08);
+      ctx.beginPath(); ctx.arc(bx - br * 1.9, by, br * 0.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+  }
+
+  function renderScan() {
+    $('#scanWork').hidden = !photos.length;
+    $('#photoStrip').innerHTML = photos.length > 1 ? photos.map(function (ph, i) {
+      var count = samples.filter(function (s) { return s.photo === i; }).length;
+      return '<button class="thumb' + (i === activePhoto ? ' is-active' : '') + '" data-photo="' + i + '" aria-label="Photo ' + (i + 1) + '">' +
+        '<img src="' + ph.thumb + '" alt="">' + (count ? '<span class="thumb-badge">' + count + '</span>' : '') + '</button>';
+    }).join('') : '';
+    var ph = photos[activePhoto];
+    if (ph) {
+      var cv = $('#photoCanvas'), ctx = cv.getContext('2d');
+      cv.width = ph.canvas.width; cv.height = ph.canvas.height;
+      ctx.drawImage(ph.canvas, 0, 0);
+      // Size markers for how big the photo is on screen (about 14px rings)
+      var shown = cv.getBoundingClientRect().width || Math.min(cv.width, 600);
+      var r = Math.max(sampleRadius(ph) * 1.3, 14 * cv.width / shown);
+      samples.forEach(function (s, i) { if (s.photo === activePhoto) drawMarker(ctx, s.x, s.y, r, sampleHex(s), String(i + 1)); });
+      if (ph.white) drawMarker(ctx, ph.white.x, ph.white.y, r, null, 'W');
+      $('#whiteStatus').innerHTML = ph.white ? '✓ Colors corrected <button class="link-btn" data-undo-white>Undo</button>' : '';
+    }
+    $('#foundCount').textContent = samples.length ? '(' + samples.length + ')' : '';
+    $('#foundList').innerHTML = samples.length ? samples.map(function (s, i) {
+      var hex = sampleHex(s), info = identify(hex);
+      var name = s.name !== null ? s.name : info.shade.name;
+      return '<li class="found"><span class="found-num">' + (i + 1) + '</span>' +
+        '<span class="blob" style="background:' + hex + '"></span>' +
+        '<div><input class="found-name" data-sname="' + s.id + '" value="' + esc(name) + '" maxlength="40" aria-label="Name for paint ' + (i + 1) + '">' +
+        '<div class="found-id">' + info.text + ' · ' + hex + '</div></div>' +
+        '<button class="icon-btn" data-sdel="' + s.id + '" aria-label="Remove paint ' + (i + 1) + '" title="Remove">×</button></li>';
+    }).join('') : '<li class="found-empty">No paints yet. Tap a paint in the photo above.</li>';
+    $('#saveFound').disabled = !samples.length;
+    $('#saveFound').textContent = samples.length ? 'Add ' + samples.length + (samples.length === 1 ? ' paint' : ' paints') + ' to my paints' : 'Add to my paints';
+  }
+
+  $('#photoStrip').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-photo]'); if (!b) return;
+    activePhoto = +b.dataset.photo; setWhiteMode(false); renderScan();
+  });
+  $('#foundList').addEventListener('input', function (e) {
+    var inp = e.target.closest('[data-sname]'); if (!inp) return;
+    samples.forEach(function (s) { if (s.id === +inp.dataset.sname) s.name = inp.value; });
+  });
+  $('#foundList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-sdel]'); if (!b) return;
+    samples = samples.filter(function (s) { return s.id !== +b.dataset.sdel; });
+    renderScan();
+  });
+
+  $('#saveFound').addEventListener('click', function () {
+    if (!samples.length) return;
+    var stamp = Date.now().toString(36);
+    var usedNames = custom.map(function (c) { return c.name.toLowerCase(); });
+    var added = samples.map(function (s, i) {
+      var hex = sampleHex(s);
+      var base = ((s.name !== null ? s.name : identify(hex).shade.name) || '').trim().slice(0, 36) || 'My paint';
+      var name = base, n = 2;
+      while (usedNames.indexOf(name.toLowerCase()) !== -1) name = base + ' ' + (n++);
+      usedNames.push(name.toLowerCase());
+      return { id: 'my-' + stamp + '-' + i, name: name, hex: hex };
+    });
+    custom = custom.concat(added);
+    if ($('#onlyMine').checked) owned = custom.map(function (c) { return c.id; });
+    else owned = owned.concat(idsOf(added));
+    store('customPaints', custom);
+    rebuildPaints();
+    photos = []; samples = []; activePhoto = -1;
+    renderScan(); closeScanner(); renderOwned(); ownedChanged();
+    toast('Added ' + added.length + (added.length === 1 ? ' paint' : ' paints') + ' to My paints');
+    $('#customSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   // ---------- Start ----------

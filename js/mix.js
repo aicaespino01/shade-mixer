@@ -259,6 +259,18 @@
   var COMP = {};
   function comps(total, k) { var key = total + ':' + k; return COMP[key] || (COMP[key] = compositions(total, k)); }
 
+  // Paints that appear in the best smaller mixes, plus the lightest and darkest paint
+  function promisingPaints(cands, paints, max) {
+    var sorted = cands.slice().sort(function (a, b) { return a.e - b.e; });
+    var out = [];
+    function addP(p) { if (out.indexOf(p) === -1 && out.length < max) out.push(p); }
+    var light = paints[0], dark = paints[0];
+    paints.forEach(function (p) { if (p.lab[0] > light.lab[0]) light = p; if (p.lab[0] < dark.lab[0]) dark = p; });
+    addP(light); addP(dark);
+    for (var i = 0; i < sorted.length && out.length < max; i++) sorted[i].paints.forEach(addP);
+    return out;
+  }
+
   function gcd(a, b) { while (b) { var t = b; b = a % b; a = t; } return a; }
 
   /**
@@ -272,12 +284,17 @@
     var cands = [];
 
     // Stage 1: coarse search over every paint combination
+    var n = paints.length;
     for (var k = 1; k <= maxPaints; k++) {
-      var sets = combos(paints.length, k, 0, [], []);
-      var coarse = k === 1 ? 1 : (k === 4 ? 12 : 16);
+      // With many paints (e.g. a big kit + standard paints), 4-paint mixes are only
+      // searched among the most promising paints so the search stays fast.
+      var pool = paints;
+      if (k === 4 && n > 13) pool = promisingPaints(cands, paints, 12);
+      var sets = combos(pool.length, k, 0, [], []);
+      var coarse = k === 1 ? 1 : (k === 4 || (k === 3 && n > 20) ? 12 : 16);
       var cs = comps(coarse, k);
       for (var s = 0; s < sets.length; s++) {
-        var ps = sets[s].map(function (i) { return paints[i]; });
+        var ps = sets[s].map(function (i) { return pool[i]; });
         var bestE = Infinity, bestW = null;
         for (var c = 0; c < cs.length; c++) {
           var e = dE76(xyzToLab(mixToXyz(ps, cs[c])), target);

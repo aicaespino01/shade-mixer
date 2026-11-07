@@ -90,11 +90,85 @@
     <!-- MY PAINTS -->
     <section id="tab-paints" class="panel" role="tabpanel" hidden>
       <h2 class="section-title">My paints</h2>
-      <p class="section-lead">Tick the paints you have. Recipes will only use these.</p>
-      <div class="preset-row">
-        <button class="btn btn-ghost" data-preset="basic">Basic kit (5 paints)</button>
-        <button class="btn btn-ghost" data-preset="all">All paints</button>
+      <p class="section-lead">Tick the paints you have. Recipes and the Mixing lab will only use these.</p>
+
+      <div class="scan-cta card" id="scanCta">
+        <div class="scan-cta-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><rect x="4" y="12" width="40" height="28" rx="6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M16 12l3-5h10l3 5" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="26" r="8" fill="none" stroke="currentColor" stroke-width="3"/></svg>
+        </div>
+        <div class="scan-cta-text">
+          <h3>Paints with no label?</h3>
+          <p>Take or upload a photo of them, tap each paint, and we'll work out its color and add it to your paints.</p>
+        </div>
+        <button class="btn btn-primary" id="openScanner">Scan paints from a photo</button>
       </div>
+
+      <div class="scanner card" id="scanner" hidden>
+        <div class="scan-head">
+          <h3>Scan your paints</h3>
+          <button class="btn btn-ghost" id="closeScanner">Close</button>
+        </div>
+
+        <details class="howto" id="howto" open>
+          <summary>How to take a good photo</summary>
+          <ol>
+            <li><b>Best way:</b> put a small dab of each paint on a sheet of plain white paper. Leave a little space between them.</li>
+            <li>Or open the pots and photograph the paint from straight above. Point at the paint itself, not the plastic.</li>
+            <li>Use daylight near a window. Turn the flash off and avoid shadows.</li>
+            <li>Get some white paper in the photo too. Tapping it fixes yellow or blue tints from your lighting.</li>
+            <li>You can use several photos if your paints don't fit in one.</li>
+          </ol>
+        </details>
+
+        <div class="scan-buttons">
+          <label class="btn btn-primary file-btn">Take a photo<input type="file" accept="image/*" capture="environment" id="camInput" class="sr-only"></label>
+          <label class="btn btn-ghost file-btn">Upload photos<input type="file" accept="image/*" multiple id="fileInput" class="sr-only"></label>
+        </div>
+        <p class="hint">Your photos stay on your device. Nothing is uploaded anywhere.</p>
+
+        <div id="scanWork" hidden>
+          <div class="photo-strip" id="photoStrip"></div>
+          <div class="scan-step">
+            <span class="step-num">1</span>
+            <div>
+              <b>Tap the white paper</b> <span class="optional">(optional, fixes the colors)</span>
+              <div class="white-row">
+                <button class="btn btn-ghost btn-sm" id="whiteBtn">Tap white paper</button>
+                <span id="whiteStatus" class="white-status"></span>
+              </div>
+            </div>
+          </div>
+          <div class="scan-step">
+            <span class="step-num">2</span>
+            <div><b>Tap each paint</b> in the photo. Tap the middle of the paint and avoid shiny spots.</div>
+          </div>
+          <div class="photo-wrap" id="photoWrap">
+            <canvas id="photoCanvas" aria-label="Your photo. Tap a paint to pick its color."></canvas>
+            <div class="mode-banner" id="modeBanner" hidden>Now tap the white paper</div>
+          </div>
+
+          <h4 class="found-title">Paints found <span id="foundCount"></span></h4>
+          <ul class="found-list" id="foundList"></ul>
+          <div class="scan-save">
+            <label class="only-mine"><input type="checkbox" id="onlyMine"> Use only my scanned paints (untick the standard ones)</label>
+            <button class="btn btn-primary" id="saveFound" disabled>Add to my paints</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="preset-row" id="presetRow">
+        <span class="preset-label">Quick pick:</span>
+        <button class="btn btn-ghost btn-sm" data-preset="basic">Basic kit (5 paints)</button>
+        <button class="btn btn-ghost btn-sm" data-preset="all">All paints</button>
+        <button class="btn btn-ghost btn-sm" data-preset="mine" hidden>Only my scanned paints</button>
+      </div>
+
+      <div id="customSection" hidden>
+        <h3 class="group-title">From my photos <small id="customCount"></small></h3>
+        <div class="owned-grid" id="customGrid"></div>
+      </div>
+
+      <h3 class="group-title">Standard paints</h3>
       <div class="owned-grid" id="ownedGrid"></div>
       <p class="hint">Tip: the basic kit (white, black, red, yellow, blue) can make most colors. Adding a magenta or purple helps a lot for pinks, lavenders and purples; a phthalo blue or green helps for turquoise and teal.</p>
     </section>
