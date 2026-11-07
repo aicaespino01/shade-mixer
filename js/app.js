@@ -244,7 +244,7 @@
   function makeSolver() {
     var w = null, seq = 0, pend = {};
     try {
-      w = new Worker('js/worker.js?v=20261107b');
+      w = new Worker('js/worker.js?v=20261107e');
       w.onmessage = function (e) {
         var job = pend[e.data.reqId]; delete pend[e.data.reqId];
         if (job) job.cb(e.data.recipes);
@@ -798,9 +798,43 @@
   });
   $('#projSort').addEventListener('change', function () { projSortBy = this.value; renderProjGrid(); });
   $('#atJump').addEventListener('click', function () {
-    projFilter = 'Adventure Time'; renderProjChips(); renderProjGrid();
-    $('#projChips').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('#kitSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+
+  // Detailed kit-style scenes: drawn as pictures, then turned into paint-by-numbers by the generator
+  var KITS = window.KIT_SCENES || [];
+  function kitUrl(k) {
+    if (!k._url) k._url = URL.createObjectURL(new Blob([k.svg()], { type: 'image/svg+xml' }));
+    return k._url;
+  }
+  function renderKits() {
+    $('#kitSection').hidden = !KITS.length;
+    $('#kitGrid').innerHTML = KITS.map(function (k) {
+      return '<button class="proj-card" data-kit="' + k.id + '">' +
+        '<span class="proj-thumb kit-thumb"><img alt="" src="' + kitUrl(k) + '"></span>' +
+        '<span class="proj-body"><span class="proj-series">' + esc(k.series) + '</span>' +
+        '<span class="proj-title">' + esc(k.title) + '</span>' +
+        '<span class="proj-meta"><span class="diff d3">Detailed</span><span>up to 24 colors</span><span>40 × 50 cm</span></span>' +
+        '<span class="kit-blurb">' + esc(k.blurb) + '</span></span></button>';
+    }).join('');
+  }
+  $('#kitGrid').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-kit]'); if (!b) return;
+    openKit(b.dataset.kit);
+  });
+  function openKit(id) {
+    var k = KITS.filter(function (x) { return x.id === id; })[0]; if (!k) return;
+    var img = new Image();
+    img.onload = function () {
+      mk.img = img; mk.name = k.title; mk.series = k.series;
+      mk.size = 0; mk.orient = 'portrait'; mk.detail = 'detailed'; mk.colors = 24;
+      gen = null;
+      openMaker(); renderMkThumb();
+      $('#mkGo').click();
+    };
+    img.onerror = function () { toast('Could not open that picture'); };
+    img.src = kitUrl(k);
+  }
 
   function renderProjGrid() {
     var list = PROJECTS.filter(function (p) {
@@ -1004,6 +1038,8 @@
     medium: { long: 360, minArea: 60, blur: 1, smooth: 2, hint: 'A good balance, like an easier store kit.' },
     detailed: { long: 480, minArea: 40, blur: 1, smooth: 1, hint: 'Lots of small areas, like your store-bought kit. Takes many hours.' }
   };
+  // drawn scenes are clean pictures, so they can use finer detail without blurring
+  var MK_KIT = { long: 600, minArea: 26, blur: 0, smooth: 1 };
   var mk = { img: null, size: 0, orient: 'portrait', detail: 'medium', colors: 16, mine: true, busy: false };
   var saved0 = store('makerSettings');
   if (saved0 && typeof saved0 === 'object') {
@@ -1057,7 +1093,7 @@
     if (file.type && file.type.indexOf('image/') !== 0) { toast('That file is not a picture'); return; }
     var url = URL.createObjectURL(file), img = new Image();
     img.onload = function () {
-      mk.img = img;
+      mk.img = img; mk.series = null;
       mk.name = (file.name || 'My picture').replace(/\.[a-z0-9]+$/i, '').slice(0, 30);
       renderMakerSettings(); renderMkThumb();
     };
@@ -1091,7 +1127,7 @@
   $('#mkGo').addEventListener('click', function () {
     if (!mk.img || mk.busy) return;
     mk.busy = true; renderMakerSettings();
-    var token = ++genToken, d = MK_DETAIL[mk.detail], cm = mkCanvasCm();
+    var token = ++genToken, d = (mk.series && mk.detail === 'detailed') ? MK_KIT : MK_DETAIL[mk.detail], cm = mkCanvasCm();
     setMkStatus('Finding the main colors in your picture…');
     setTimeout(function () {
       var c = cropRect(mk.img), w, h;
@@ -1129,7 +1165,7 @@
     }
     gen = buildGen({
       title: mk.name || 'My picture', w: res.w, h: res.h, labels: res.labels, colors: colors,
-      cm: cm, detail: mk.detail, mine: mk.mine, key: paintsKey(), savedId: null
+      cm: cm, detail: mk.detail, mine: mk.mine, key: paintsKey(), savedId: null, series: mk.series || null
     });
     mk.busy = false; renderMakerSettings();
     renderGen();
@@ -1246,7 +1282,9 @@
       '<li><b>Mix the colors.</b> Put each one in its own spot and write its number next to it. Bottle caps or an egg carton make great paint cups. Cover them with plastic wrap between sessions.</li>' +
       '<li><b>Paint one color at a time</b>, everywhere it appears. Start with 1 (lightest) and finish with ' + g.colors.length + ' (darkest).</li>' +
       '<li><b>Fix and finish.</b> Add a second coat where pencil or numbers show through, and touch up the edges with a small brush.</li>' +
-      '</ol><p class="hint">Download the numbers sheet to keep it on a tablet or print it later. Pictures you save stay on this device.</p></div>';
+      '</ol><p class="hint">Download the numbers sheet to keep it on a tablet or print it later. Pictures you save stay on this device.</p>' +
+      (g.series ? '<p class="hint">Non-commercial fan art for personal use, which we consider fair use. Adventure Time and its characters belong to Cartoon Network. Please don’t sell paintings made from it.</p>' : '') +
+      '</div>';
     $('#mkResult').innerHTML = html;
     renderGenArt();
   }
@@ -1308,7 +1346,7 @@
     var list = loadSaved();
     var rec = {
       id: g.savedId || 'pic-' + Date.now().toString(36), title: g.title, w: g.w, h: g.h, cm: g.cm, detail: g.detail, mine: g.mine,
-      key: g.key, created: Date.now(), rle: PBN.rleEncode(g.labels),
+      key: g.key, created: Date.now(), rle: PBN.rleEncode(g.labels), series: g.series || null,
       colors: g.colors.map(function (c) { return { hex: c.hex, picture: c.picture, recipe: c.recipe ? { hex: c.recipe.hex, dE: c.recipe.dE, total: c.recipe.total, items: c.recipe.items } : null }; })
     };
     list = list.filter(function (x) { return x.id !== rec.id; });
@@ -1359,7 +1397,7 @@
     var labels;
     try { labels = PBN.rleDecode(rec.rle, rec.w * rec.h); } catch (err) { toast('That picture could not be opened'); return; }
     gen = buildGen({
-      title: rec.title, w: rec.w, h: rec.h, labels: labels, cm: rec.cm, detail: rec.detail, mine: rec.mine, key: rec.key, savedId: rec.id,
+      title: rec.title, w: rec.w, h: rec.h, labels: labels, cm: rec.cm, detail: rec.detail, mine: rec.mine, key: rec.key, savedId: rec.id, series: rec.series || null,
       colors: rec.colors.map(function (c) { return { hex: c.hex, picture: c.picture, recipe: c.recipe }; })
     });
     genView.highlight = 0;
@@ -1430,7 +1468,7 @@
 
   // ---------- Start ----------
   renderOwned(); renderChips(); renderLibrary(); renderLab();
-  renderProjChips(); renderProjGrid(); renderSaved();
+  renderProjChips(); renderProjGrid(); renderSaved(); renderKits();
   $('#result').classList.add('is-idle');
   // Check which projects the user's paints can make the first time they open Projects
   var checkedOnce = false;
