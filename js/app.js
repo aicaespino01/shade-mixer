@@ -797,6 +797,10 @@
     projFilter = b.dataset.pf; renderProjChips(); renderProjGrid();
   });
   $('#projSort').addEventListener('change', function () { projSortBy = this.value; renderProjGrid(); });
+  $('#atJump').addEventListener('click', function () {
+    projFilter = 'Adventure Time'; renderProjChips(); renderProjGrid();
+    $('#projChips').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   function renderProjGrid() {
     var list = PROJECTS.filter(function (p) {
