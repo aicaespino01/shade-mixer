@@ -93,6 +93,46 @@
     return cent;
   }
 
+  /*
+   * Painterly patches: smooth color fades (skies, sunsets) would otherwise turn into straight stripes.
+   * Store kits break them into soft, wavy patches. We add gentle low-frequency noise only where the
+   * picture fades smoothly; flat areas and sharp edges are left alone.
+   */
+  function organic(lab, w, h, amp) {
+    if (!amp) return lab;
+    var n = w * h, out = new Float32Array(lab), weight = new Float32Array(n), x, y, i;
+    function d(a, b) { var p = a * 3, q = b * 3; return Math.abs(lab[p] - lab[q]) + Math.abs(lab[p + 1] - lab[q + 1]) + Math.abs(lab[p + 2] - lab[q + 2]); }
+    function sstep(e0, e1, v) { var t = Math.min(1, Math.max(0, (v - e0) / (e1 - e0))); return t * t * (3 - 2 * t); }
+    for (y = 3; y < h - 3; y++) for (x = 3; x < w - 3; x++) {
+      i = y * w + x;
+      var g = d(i - 3, i + 3) + d(i - 3 * w, i + 3 * w);
+      weight[i] = sstep(0.12, 0.6, g) * (1 - sstep(3, 9, g));
+    }
+    // soften the weight map so patches fade in and out
+    var wb = new Float32Array(n), R = 6;
+    for (y = 0; y < h; y++) { var acc = 0; for (x = -R; x < w; x++) { if (x + R < w) acc += weight[y * w + x + R]; if (x - R - 1 >= 0) acc -= weight[y * w + x - R - 1]; if (x >= 0) wb[y * w + x] = acc / (2 * R + 1); } }
+    for (x = 0; x < w; x++) { var acc2 = 0; for (y = -R; y < h; y++) { if (y + R < h) acc2 += wb[(y + R) * w + x]; if (y - R - 1 >= 0) acc2 -= wb[(y - R - 1) * w + x]; if (y >= 0) weight[y * w + x] = acc2 / (2 * R + 1); } }
+    var rand = rng(777);
+    [[Math.max(10, Math.round(w / 14)), 1], [Math.max(5, Math.round(w / 34)), 0.45]].forEach(function (oct) {
+      var cell = oct[0], gw = Math.ceil(w / cell) + 2, gh = Math.ceil(h / cell) + 2, grid = new Float32Array(gw * gh * 3);
+      for (var k = 0; k < grid.length; k++) grid[k] = rand() * 2 - 1;
+      for (y = 0; y < h; y++) {
+        var fy = y / cell, y0 = Math.floor(fy), ty = fy - y0; ty = ty * ty * (3 - 2 * ty);
+        for (x = 0; x < w; x++) {
+          i = y * w + x; if (weight[i] < 0.01) continue;
+          var fx = x / cell, x0 = Math.floor(fx), tx = fx - x0; tx = tx * tx * (3 - 2 * tx);
+          for (var c = 0; c < 3; c++) {
+            var a = grid[(y0 * gw + x0) * 3 + c], b = grid[(y0 * gw + x0 + 1) * 3 + c];
+            var e = grid[((y0 + 1) * gw + x0) * 3 + c], f = grid[((y0 + 1) * gw + x0 + 1) * 3 + c];
+            var v = (a * (1 - tx) + b * tx) * (1 - ty) + (e * (1 - tx) + f * tx) * ty;
+            out[i * 3 + c] += v * amp * oct[1] * weight[i] * (c === 0 ? 1 : 0.5);
+          }
+        }
+      }
+    });
+    return out;
+  }
+
   function assignAll(lab, n, cent) {
     var labels = new Uint8Array(n), k = cent.length;
     for (var i = 0; i < n; i++) {
@@ -237,7 +277,7 @@
       lab[i * 3] = L[0]; lab[i * 3 + 1] = L[1]; lab[i * 3 + 2] = L[2];
     }
     var cent = kmeans(lab, n, opts.colors || 12);
-    var labels = assignAll(lab, n, cent);
+    var labels = assignAll(organic(lab, w, h, opts.organic === undefined ? 5 : opts.organic), n, cent);
     for (var s = 0; s < (opts.smooth || 1); s++) labels = majority(labels, w, h, cent.length, 1);
     labels = mergeSmall(labels, w, h, opts.minArea || 40, cent);
     // average real picture color of each final label

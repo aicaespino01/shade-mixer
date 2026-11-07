@@ -151,7 +151,7 @@
     var r = rng(22), p = 'ja';
     var BODY = 'M148 280Q138 340 152 384Q200 396 248 384Q262 340 252 280Z';
     var HEAD = 'M116 215A84 70 0 1 0 284 215A84 70 0 1 0 116 215Z';
-    var defs = lin(p + 'sky', [[0, '#7FB6EA'], [0.5, '#F6CBA9'], [1, '#F39C7B']]) +
+    var defs = lin(p + 'sky', [[0, '#6FA8E8'], [0.32, '#A7A3E3'], [0.58, '#F0A6C4'], [0.8, '#F8C08F'], [1, '#F6A066']]) +
       lin(p + 'h1', [[0, '#B98BB3'], [1, '#9A78A8']]) +
       lin(p + 'h2', [[0, '#7DB862'], [1, '#5B9E4B']]) +
       lin(p + 'gr', [[0, '#67A94F'], [1, '#3D8236']]) +
@@ -403,8 +403,112 @@
     return wrap(defs, b);
   }
 
+  // ------------------------------------------------------------------ Seaside village (like a Greek island)
+  function village() {
+    var r = rng(66), p = 'sv';
+    var defs = lin(p + 'sky', [[0, '#7FC4F0'], [0.55, '#CDE9FA'], [1, '#F7F0E1']]) +
+      lin(p + 'sea', [[0, '#5B9CCB'], [1, '#2C6CA2']]) +
+      lin(p + 'cl', [[0, '#FFFFFF'], [1, '#E2ECF4']]) +
+      lin(p + 'rock', [[0, '#D8BC93'], [1, '#B88F64']]);
+    var b = '<rect width="400" height="500" fill="url(#' + p + 'sky)"/>' +
+      '<circle cx="66" cy="208" r="34" fill="#FBF0C9"/><circle cx="66" cy="208" r="24" fill="#F8DE84"/>' +
+      cloud(110, 70, 1.1, 'url(#' + p + 'cl)') + cloud(250, 40, 0.8, 'url(#' + p + 'cl)') + cloud(40, 130, 0.6, 'url(#' + p + 'cl)') +
+      '<path d="M0 232Q40 220 80 228Q110 222 140 232Z" fill="#9DB3C6"/>' +
+      '<rect x="0" y="230" width="400" height="270" fill="url(#' + p + 'sea)"/>';
+    for (var w = 0; w < 46; w++) {
+      var wy = 240 + r() * 250, wx = r() * 220, wl = 8 + (wy - 240) / 250 * 22;
+      b += '<path d="M' + n1(wx) + ' ' + n1(wy) + 'q' + n1(wl / 2) + ' -3 ' + n1(wl) + ' 0" fill="none" stroke="' + (r() < 0.5 ? '#8CC0E2' : '#3F7FB4') + '" stroke-width="' + n1(2 + (wy - 240) / 250 * 2) + '" stroke-linecap="round"/>';
+    }
+    // the cliff the village sits on
+    b += '<path d="M70 500Q80 420 130 360Q170 300 215 250Q262 190 292 150Q325 110 400 90V500Z" fill="url(#' + p + 'rock)"/>' +
+      '<path d="M80 500Q74 440 110 392Q96 450 110 500Z" fill="#A9805A"/>';
+    // houses, back (top) rows first
+    var walls = ['#FBF8F2', '#F4EFE6', '#EFE7DA', '#F7F1E3', '#FBF8F2', '#F2C94C', '#E9A3A3', '#D9825B', '#F4EFE6'];
+    var houses = [];
+    for (var row = 0; row < 11; row++) {
+      var y = 112 + row * 34, startX = 310 - row * 23 + r() * 8, x = startX;
+      while (x < 400) {
+        var hw = 26 + r() * 30, hh = 26 + r() * 20;
+        houses.push({ x: x, y: y - hh + 10 + r() * 8, w: hw, h: hh + 14, c: walls[Math.floor(r() * walls.length)], dome: r() < 0.16, door: r() < 0.7 });
+        x += hw - 2;
+      }
+    }
+    houses.forEach(function (h) {
+      b += '<rect x="' + n1(h.x) + '" y="' + n1(h.y) + '" width="' + n1(h.w) + '" height="' + n1(h.h) + '" fill="' + h.c + '" stroke="#BFB29E" stroke-width="2.4"/>' +
+        '<rect x="' + n1(h.x + h.w * 0.74) + '" y="' + n1(h.y) + '" width="' + n1(h.w * 0.26) + '" height="' + n1(h.h) + '" fill="#DCD2C2" fill-opacity=".8"/>' +
+        '<rect x="' + n1(h.x - 1) + '" y="' + n1(h.y - 3) + '" width="' + n1(h.w + 2) + '" height="4" fill="#E9E2D6"/>';
+      if (h.door) b += '<path d="M' + n1(h.x + h.w * 0.22) + ' ' + n1(h.y + h.h) + 'V' + n1(h.y + h.h * 0.5) + 'q' + n1(h.w * 0.09) + ' -6 ' + n1(h.w * 0.18) + ' 0V' + n1(h.y + h.h) + 'Z" fill="' + (r() < 0.6 ? '#2F6DB5' : '#8A5A35') + '"/>';
+      if (r() < 0.7) b += '<rect x="' + n1(h.x + h.w * 0.5) + '" y="' + n1(h.y + h.h * 0.28) + '" width="' + n1(h.w * 0.16) + '" height="' + n1(h.h * 0.22) + '" fill="#3A78C2"/>';
+      if (h.dome) b += '<path d="M' + n1(h.x + 4) + ' ' + n1(h.y - 2) + 'A' + n1(h.w / 2 - 4) + ' ' + n1(h.w / 2 - 4) + ' 0 0 1 ' + n1(h.x + h.w - 4) + ' ' + n1(h.y - 2) + 'Z" fill="#2F6DB5"/>' +
+        '<path d="M' + n1(h.x + 8) + ' ' + n1(h.y - 4) + 'A' + n1(h.w / 2 - 8) + ' ' + n1(h.w / 2 - 8) + ' 0 0 1 ' + n1(h.x + h.w / 2) + ' ' + n1(h.y - h.w / 2 + 6) + 'L' + n1(h.x + h.w / 2) + ' ' + n1(h.y - 4) + 'Z" fill="#5A93D6"/>';
+      if (r() < 0.22) {
+        for (var f = 0; f < 6; f++) b += '<circle cx="' + n1(h.x + r() * h.w) + '" cy="' + n1(h.y + h.h * 0.15 + r() * h.h * 0.4) + '" r="' + n1(3 + r() * 4) + '" fill="' + (r() < 0.5 ? '#D6337F' : '#E85AA0') + '"/>';
+      }
+    });
+    // church with a red dome and bell tower
+    b += '<rect x="212" y="232" width="64" height="58" fill="#FBF8F2"/><rect x="258" y="232" width="18" height="58" fill="#DCD2C2"/>' +
+      '<path d="M214 234A30 30 0 0 1 274 234Z" fill="#C0392B"/><path d="M220 232A24 24 0 0 1 244 210V232Z" fill="#E0594A"/>' +
+      '<rect x="242" y="196" width="4" height="12" fill="#E9E2D6"/><rect x="238" y="200" width="12" height="3" fill="#E9E2D6"/>' +
+      '<path d="M228 290V262Q236 252 244 262V290Z" fill="#8A5A35"/>' +
+      '<rect x="186" y="214" width="24" height="76" fill="#F4EFE6"/><path d="M186 214L198 196L210 214Z" fill="#FBF8F2"/>' +
+      '<path d="M191 236V226Q198 218 205 226V236Z M191 258V248Q198 240 205 248V258Z" fill="#7B6A58"/>';
+    // stairs winding down
+    for (var st = 0; st < 12; st++) {
+      var sx = 236 - st * 8, sy = 300 + st * 15;
+      b += '<rect x="' + sx + '" y="' + sy + '" width="58" height="12" fill="#ECE6DB"/><rect x="' + sx + '" y="' + (sy + 9) + '" width="58" height="3" fill="#CFC6B6"/>';
+    }
+    // greenery
+    for (var g = 0; g < 9; g++) {
+      var gx = 120 + r() * 270, gy = 150 + r() * 330;
+      b += '<circle cx="' + n1(gx) + '" cy="' + n1(gy) + '" r="' + n1(6 + r() * 6) + '" fill="#6E9F4F"/><circle cx="' + n1(gx - 3) + '" cy="' + n1(gy - 3) + '" r="' + n1(3 + r() * 3) + '" fill="#8DBB65"/>';
+    }
+    b += '';
+    return wrap(defs, b);
+  }
+
+  // ------------------------------------------------------------------ Lake at sunset
+  function lake() {
+    var r = rng(77), p = 'ls';
+    var defs = lin(p + 'sky', [[0, '#3B5BA9'], [0.35, '#9B7BC8'], [0.62, '#F49AC1'], [0.82, '#FBB979'], [1, '#FDD98A']]) +
+      lin(p + 'lake', [[0, '#FBC88E'], [0.25, '#E99AB8'], [0.6, '#8B72B8'], [1, '#3C4F94']]);
+    var b = '<rect width="400" height="320" fill="url(#' + p + 'sky)"/>' +
+      '<circle cx="200" cy="262" r="46" fill="#FDE7AE"/><circle cx="200" cy="262" r="34" fill="#FFD777"/>';
+    [[60, 70, 70, 9, '#7E6DB8'], [300, 95, 90, 10, '#8E78C4'], [120, 150, 110, 8, '#D58BC0'], [320, 180, 80, 7, '#EE9CB8'], [70, 215, 90, 7, '#F7A98F'], [260, 228, 70, 6, '#FAB88A']].forEach(function (c) {
+      b += '<ellipse cx="' + c[0] + '" cy="' + c[1] + '" rx="' + c[2] + '" ry="' + c[3] + '" fill="' + c[4] + '"/>' +
+        '<ellipse cx="' + (c[0] + 18) + '" cy="' + (c[1] - c[3] * 0.6) + '" rx="' + (c[2] * 0.55) + '" ry="' + (c[3] * 0.7) + '" fill="' + c[4] + '"/>';
+    });
+    b += '<path d="M0 300L50 250L90 280L140 232L190 290L240 245L290 285L340 238L400 280V320H0Z" fill="#8C6FAE"/>' +
+      '<path d="M0 312L60 280L110 304L170 270L230 306L280 276L340 300L400 286V320H0Z" fill="#5E4A8C"/>' +
+      '<rect y="318" width="400" height="182" fill="url(#' + p + 'lake)"/>';
+    for (var i = 0; i < 12; i++) {
+      var ry2 = 326 + i * 9, rw = 42 - i * 2.6 + r() * 6;
+      b += '<ellipse cx="' + n1(200 + (r() - 0.5) * 8) + '" cy="' + ry2 + '" rx="' + n1(rw) + '" ry="2.6" fill="' + (i < 6 ? '#FFE3A1' : '#F7C27F') + '"/>';
+    }
+    for (var w = 0; w < 30; w++) {
+      var wy = 330 + r() * 150, wx = r() * 400;
+      if (Math.abs(wx - 200) < 50 && wy < 440) continue;
+      b += '<path d="M' + n1(wx) + ' ' + n1(wy) + 'h' + n1(10 + r() * 20) + '" stroke="' + (r() < 0.5 ? '#F4A9C6' : '#6E5FA5') + '" stroke-width="2.5" stroke-linecap="round"/>';
+    }
+    // boat
+    b += '<path d="M248 392H300L290 404H258Z" fill="#2A2440"/><rect x="272" y="376" width="3" height="16" fill="#2A2440"/><circle cx="273.5" cy="372" r="5" fill="#2A2440"/>';
+    // shore and pines
+    b += '<path d="M0 430Q60 418 110 440Q90 470 0 470Z" fill="#2B2745"/><path d="M400 420Q330 412 290 440Q320 470 400 470Z" fill="#2B2745"/>' +
+      '<path d="M0 460Q200 440 400 462V500H0Z" fill="#1F1C36"/>';
+    [[20, 445, 90], [52, 450, 70], [84, 452, 54], [330, 440, 84], [362, 446, 100], [300, 452, 60]].forEach(function (t) {
+      var x = t[0], base = t[1], h = t[2];
+      b += '<path d="M' + x + ' ' + (base - h) + 'L' + n1(x - 0.3 * h) + ' ' + n1(base - 0.5 * h) + 'L' + n1(x - 0.17 * h) + ' ' + n1(base - 0.5 * h) + 'L' + n1(x - 0.38 * h) + ' ' + base + 'H' + n1(x + 0.38 * h) + 'L' + n1(x + 0.17 * h) + ' ' + n1(base - 0.5 * h) + 'L' + n1(x + 0.3 * h) + ' ' + n1(base - 0.5 * h) + 'Z" fill="#1E1A33"/>';
+    });
+    b += grass(r, 462, 500, 160, ['#2E2850', '#3A3263', '#1E1A33']);
+    [[110, 120], [130, 108], [150, 126]].forEach(function (bd) {
+      b += '<path d="M' + bd[0] + ' ' + bd[1] + 'q6 -6 12 0q6 -6 12 0" fill="none" stroke="#3B2F5C" stroke-width="3" stroke-linecap="round"/>';
+    });
+    return wrap(defs, b);
+  }
+
   var SERIES = 'Adventure Time fan art';
   global.KIT_SCENES = [
+    { id: 'kit-village', title: 'Seaside village', series: null, blurb: 'White houses, blue domes and pink flowers above the sea, like a Greek island.', svg: village },
+    { id: 'kit-lake', title: 'Lake at sunset', series: null, blurb: 'A pink and gold sunset over the mountains, reflected in a calm lake.', svg: lake },
     { id: 'kit-finn', title: 'Finn in the meadow', series: SERIES, blurb: 'Finn in his bear hat on a sunny day, with hills, trees and flowers.', svg: finn },
     { id: 'kit-jake', title: 'Jake at sunset', series: SERIES, blurb: 'Jake standing in the grass with a warm sunset behind him.', svg: jake },
     { id: 'kit-pb', title: 'Princess Bubblegum in the Candy Kingdom', series: SERIES, blurb: 'PB in front of her candy castle, with gumdrops and lollipops.', svg: pb },

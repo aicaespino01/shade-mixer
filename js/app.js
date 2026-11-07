@@ -244,7 +244,7 @@
   function makeSolver() {
     var w = null, seq = 0, pend = {};
     try {
-      w = new Worker('js/worker.js?v=20261107e');
+      w = new Worker('js/worker.js?v=20261107f');
       w.onmessage = function (e) {
         var job = pend[e.data.reqId]; delete pend[e.data.reqId];
         if (job) job.cb(e.data.recipes);
@@ -812,7 +812,7 @@
     $('#kitGrid').innerHTML = KITS.map(function (k) {
       return '<button class="proj-card" data-kit="' + k.id + '">' +
         '<span class="proj-thumb kit-thumb"><img alt="" src="' + kitUrl(k) + '"></span>' +
-        '<span class="proj-body"><span class="proj-series">' + esc(k.series) + '</span>' +
+        '<span class="proj-body"><span class="proj-series">' + esc(k.series || 'Scenery') + '</span>' +
         '<span class="proj-title">' + esc(k.title) + '</span>' +
         '<span class="proj-meta"><span class="diff d3">Detailed</span><span>up to 24 colors</span><span>40 × 50 cm</span></span>' +
         '<span class="kit-blurb">' + esc(k.blurb) + '</span></span></button>';
@@ -826,7 +826,7 @@
     var k = KITS.filter(function (x) { return x.id === id; })[0]; if (!k) return;
     var img = new Image();
     img.onload = function () {
-      mk.img = img; mk.name = k.title; mk.series = k.series;
+      mk.img = img; mk.name = k.title; mk.series = k.series || null; mk.kit = true;
       mk.size = 0; mk.orient = 'portrait'; mk.detail = 'detailed'; mk.colors = 24;
       gen = null;
       openMaker(); renderMkThumb();
@@ -1093,7 +1093,7 @@
     if (file.type && file.type.indexOf('image/') !== 0) { toast('That file is not a picture'); return; }
     var url = URL.createObjectURL(file), img = new Image();
     img.onload = function () {
-      mk.img = img; mk.series = null;
+      mk.img = img; mk.series = null; mk.kit = false;
       mk.name = (file.name || 'My picture').replace(/\.[a-z0-9]+$/i, '').slice(0, 30);
       renderMakerSettings(); renderMkThumb();
     };
@@ -1127,7 +1127,7 @@
   $('#mkGo').addEventListener('click', function () {
     if (!mk.img || mk.busy) return;
     mk.busy = true; renderMakerSettings();
-    var token = ++genToken, d = (mk.series && mk.detail === 'detailed') ? MK_KIT : MK_DETAIL[mk.detail], cm = mkCanvasCm();
+    var token = ++genToken, d = (mk.kit && mk.detail === 'detailed') ? MK_KIT : MK_DETAIL[mk.detail], cm = mkCanvasCm();
     setMkStatus('Finding the main colors in your picture…');
     setTimeout(function () {
       var c = cropRect(mk.img), w, h;
@@ -1136,8 +1136,12 @@
       var ctx = cv.getContext('2d', { willReadFrequently: true });
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(mk.img, c[0], c[1], c[2], c[3], 0, 0, w, h);
+      var original = cv.toDataURL('image/jpeg', 0.9), sc = document.createElement('canvas');
+      sc.width = Math.round(w * 300 / Math.max(w, h)); sc.height = Math.round(h * 300 / Math.max(w, h));
+      sc.getContext('2d').drawImage(cv, 0, 0, sc.width, sc.height);
+      mk.original = original; mk.originalSmall = sc.toDataURL('image/jpeg', 0.8);
       var res;
-      try { res = PBN.process(ctx.getImageData(0, 0, w, h).data, w, h, { colors: mk.colors, minArea: d.minArea, blur: d.blur, smooth: d.smooth }); }
+      try { res = PBN.process(ctx.getImageData(0, 0, w, h).data, w, h, { colors: mk.colors, minArea: d.minArea, blur: d.blur, smooth: d.smooth, organic: mk.kit ? 6 : 4 }); }
       catch (err) { mk.busy = false; renderMakerSettings(); setMkStatus('Something went wrong reading that picture.'); return; }
       var hexes = res.palette.map(function (p) { return PM.rgbToHex(p); });
       var recipes = [], done = 0;
@@ -1165,7 +1169,7 @@
     }
     gen = buildGen({
       title: mk.name || 'My picture', w: res.w, h: res.h, labels: res.labels, colors: colors,
-      cm: cm, detail: mk.detail, mine: mk.mine, key: paintsKey(), savedId: null, series: mk.series || null
+      cm: cm, detail: mk.detail, mine: mk.mine, key: paintsKey(), savedId: null, series: mk.series || null, original: mk.original, originalSmall: mk.originalSmall
     });
     mk.busy = false; renderMakerSettings();
     renderGen();
@@ -1253,8 +1257,8 @@
       '<div class="gen-head"><input class="gen-title" id="genTitle" value="' + esc(g.title) + '" maxlength="40" aria-label="Picture name">' +
       '<div class="proj-meta"><span class="diff d' + g.difficulty + '">' + DIFF[g.difficulty] + '</span><span>' + g.areas + ' areas</span>' +
       '<span>' + g.colors.length + ' colors</span><span>' + esc(g.time) + '</span><span>' + g.cm[0] + ' × ' + g.cm[1] + ' cm</span></div></div>' +
-      '<div class="seg" role="tablist"><button class="seg-btn" data-gview="color">Finished look</button><button class="seg-btn" data-gview="numbers">Numbers</button></div>' +
-      '<div class="gen-canvas-wrap"><canvas id="genCanvas"></canvas></div>' +
+      '<div class="seg" role="tablist">' + (g.original ? '<button class="seg-btn" data-gview="original">Original</button>' : '') + '<button class="seg-btn" data-gview="color">Finished look</button><button class="seg-btn" data-gview="numbers">Numbers</button></div>' +
+      '<div class="gen-canvas-wrap"><canvas id="genCanvas"></canvas>' + (g.original ? '<img id="genOrig" alt="Your original picture" src="' + g.original + '" hidden>' : '') + '</div>' +
       '<div class="art-tools" id="genGridTools"><label class="tool-check"><input type="checkbox" id="genGrid"' + (genView.grid ? ' checked' : '') + '> Show grid</label>' +
       '<label class="tool-sel">Squares every <select id="genCell">' + cellOpts.map(function (c) { return '<option value="' + c + '"' + (c === genView.cell ? ' selected' : '') + '>' + c + ' cm</option>'; }).join('') + '</select></label>' +
       '<p class="grid-help" id="genGridHelp"></p></div>' +
@@ -1290,9 +1294,13 @@
   }
   function renderGenArt() {
     var g = gen; if (!g || !$('#genCanvas')) return;
-    drawGen($('#genCanvas'), genView.mode, { highlight: genView.highlight, grid: genView.mode === 'numbers' && genView.grid });
+    if (genView.mode === 'original' && !g.original) genView.mode = 'color';
+    var showOrig = genView.mode === 'original';
+    $('#genCanvas').hidden = showOrig;
+    if ($('#genOrig')) $('#genOrig').hidden = !showOrig;
+    if (!showOrig) drawGen($('#genCanvas'), genView.mode, { highlight: genView.highlight, grid: genView.mode === 'numbers' && genView.grid });
     $$('[data-gview]').forEach(function (b) { b.classList.toggle('is-active', b.dataset.gview === genView.mode); });
-    $('#genGridTools').hidden = genView.mode === 'color';
+    $('#genGridTools').hidden = genView.mode !== 'numbers';
     var cols = Math.ceil(g.cm[0] / genView.cell), rows = Math.ceil(g.cm[1] / genView.cell);
     $('#genGridHelp').hidden = !genView.grid;
     $('#genGridHelp').innerHTML = 'Draw a light pencil line every <b>' + genView.cell + ' cm</b> across and down your ' + g.cm[0] + ' × ' + g.cm[1] + ' cm canvas (' + cols + ' × ' + rows + ' squares).';
@@ -1346,7 +1354,7 @@
     var list = loadSaved();
     var rec = {
       id: g.savedId || 'pic-' + Date.now().toString(36), title: g.title, w: g.w, h: g.h, cm: g.cm, detail: g.detail, mine: g.mine,
-      key: g.key, created: Date.now(), rle: PBN.rleEncode(g.labels), series: g.series || null,
+      key: g.key, created: Date.now(), rle: PBN.rleEncode(g.labels), series: g.series || null, original: g.originalSmall || g.original || null,
       colors: g.colors.map(function (c) { return { hex: c.hex, picture: c.picture, recipe: c.recipe ? { hex: c.recipe.hex, dE: c.recipe.dE, total: c.recipe.total, items: c.recipe.items } : null }; })
     };
     list = list.filter(function (x) { return x.id !== rec.id; });
@@ -1397,7 +1405,7 @@
     var labels;
     try { labels = PBN.rleDecode(rec.rle, rec.w * rec.h); } catch (err) { toast('That picture could not be opened'); return; }
     gen = buildGen({
-      title: rec.title, w: rec.w, h: rec.h, labels: labels, cm: rec.cm, detail: rec.detail, mine: rec.mine, key: rec.key, savedId: rec.id, series: rec.series || null,
+      title: rec.title, w: rec.w, h: rec.h, labels: labels, cm: rec.cm, detail: rec.detail, mine: rec.mine, key: rec.key, savedId: rec.id, series: rec.series || null, original: rec.original || null, originalSmall: rec.original || null,
       colors: rec.colors.map(function (c) { return { hex: c.hex, picture: c.picture, recipe: c.recipe }; })
     });
     genView.highlight = 0;

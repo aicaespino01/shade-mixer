@@ -154,3 +154,5 @@ svg.art .grid text.gl { font: 700 7px 'DM Sans', sans-serif; fill: #2F7FD6; text
 .kit-thumb { aspect-ratio: 4 / 5; }
 .kit-blurb { font-size: .8rem; color: var(--ink-soft); line-height: 1.35; }
 #kitSection { scroll-margin-top: 130px; margin-bottom: 18px; }
+#genOrig { display: block; width: 100%; height: auto; }
+#genCanvas[hidden], #genOrig[hidden] { display: none; }
