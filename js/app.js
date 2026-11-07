@@ -244,7 +244,7 @@
   function makeSolver() {
     var w = null, seq = 0, pend = {};
     try {
-      w = new Worker('js/worker.js');
+      w = new Worker('js/worker.js?v=20261107b');
       w.onmessage = function (e) {
         var job = pend[e.data.reqId]; delete pend[e.data.reqId];
         if (job) job.cb(e.data.recipes);
