@@ -1,1 +1,25 @@
 .claude/
+
+# Never upload private data, secrets or tool files (safe-github)
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+*.docx
+*.doc
+*.pdf
+*.accdb
+*.mdb
+*.sqlite
+*.db
+.env
+.env.*
+*.key
+*.pem
+*.p12
+brief.md
+notes-private/
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
